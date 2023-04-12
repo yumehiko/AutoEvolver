@@ -1,4 +1,5 @@
 from .ui_base import UIBase
+from .role import Role
 from .chat_message import ChatMessage
 from .talker import Talker
 from .bot_agent import BotAgent
@@ -37,6 +38,7 @@ class Session():
         agent = BotAgent()  
         objective, context = await self.determine_objective(agent)
         tasks = self.split_to_tasks(agent, objective, context)
+        self.message_carrier.save_log_as_json()
 
 
         
@@ -78,10 +80,24 @@ class Session():
         Context: {context}
         Response: 
         """
-        response = agent.response_to_prompt(prompt)
 
-        return "Yes" in response
-    
+        prompt_context = [{"role": Role.system.name, "content": prompt}]
+
+        response = agent.response_to_context(prompt_context)
+        if response == "Yes":
+            return True
+
+        prompt_context.append({"role": Role.assistant.name, "content": response})
+        prompt = f"""
+        Please tell me why you have determined that this task is not feasible.
+        Response:"""
+        prompt_context.append({"role": Role.system.name, "content": prompt})
+        response = agent.response_to_context(prompt_context)
+        # responseを解決不能な理由として表示する
+        text = f"Response: {response}"
+        self.message_carrier.print_message_as_system(text, True)
+        return False
+
 
     async def ask_objective(self) -> str:
         """
@@ -107,7 +123,7 @@ class Session():
         """
         ユーザーから、目的設定に関する文脈の入力を受ける。
         """
-        text = ("目的に関する文脈を入力してください。\n例：PCで遊べる、シンプルで古典的なテトリス。")
+        text = ("目的に関する文脈を入力してください。\n例：Pythonで実行できる、シンプルなテトリス。音は必要ありません。")
         self.message_carrier.print_message_as_system(text, True)
 
         try:

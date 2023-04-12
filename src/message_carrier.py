@@ -58,7 +58,7 @@ class MessageCarrier:
         self.logData.append(formatted_prompt)
 
 
-    def save_json(self) -> None:
+    def save_log_as_json(self) -> None:
         """
         これまでに記録したログデータをjson形式で保存する
         """
