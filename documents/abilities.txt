@@ -1,0 +1,5 @@
+- Ability to interact with Chat Bot in conjunction with ChatGPT API
+- Ability to translate into various languages
+- Ability to work with Pinecone to store and retrieve Vectorized information
+- Ability to generate, store, improve, and run Python modules
+- Ability to record user and bot interaction
