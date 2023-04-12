@@ -15,3 +15,10 @@ class UIBase(ABC):
         チャットメッセージを表示する。
         """
         pass
+
+    @abstractmethod
+    def process_event(self) -> None:
+        """
+        待機中にUIを固まらせないためにコールする
+        """
+        pass

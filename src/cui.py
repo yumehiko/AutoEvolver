@@ -48,3 +48,6 @@ class CUI(UIBase):
 
         # 空行を入れる
         print()
+
+    def process_event(self) -> None:
+        pass

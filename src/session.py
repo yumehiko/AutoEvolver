@@ -38,8 +38,14 @@ class Session():
         agent = BotAgent()  
         objective, context = await self.determine_objective(agent)
         tasks = self.split_to_tasks(agent, objective, context)
-        self.message_carrier.save_log_as_json()
+        await self.end()
 
+    async def end(self) -> None:
+        self.message_carrier.print_message_as_system("\n=== End Session ===", True)
+        self.message_carrier.save_log_as_json()
+        # 何か入力すると終了するメッセージを表示する。
+        self.message_carrier.print_message_as_system("何か入力すると終了します。", False)
+        await self.view.request_user_input()
 
         
     
@@ -50,7 +56,7 @@ class Session():
         while True:
             objective = await self.ask_objective()
             context = await self.ask_context()
-            feasibility = self.feasibility_assessment(agent, objective, context)
+            feasibility = await self.feasibility_assessment(agent, objective, context)
             if not feasibility:
                 text = f"Error: 達成不能と判断されました。\n目的設定からやり直してください。"
                 self.message_carrier.print_message_as_system(text, True)
@@ -60,7 +66,7 @@ class Session():
                 return objective, context
 
 
-    def feasibility_assessment(self, agent: BotAgent, objective: str, context: str) -> bool:
+    async def feasibility_assessment(self, agent: BotAgent, objective: str, context: str) -> bool:
         """
         目的の実現可能性を判定する。
         """
@@ -75,7 +81,7 @@ class Session():
         AutoEvolver is capable of: 
         {abilities}
         Based on the above, determine whether or not the following objective is feasible.
-        Response with a simple "Yes" or "No”.
+        Response with a just simple "Yes" or "No”.
         Objective: {objective}
         Context: {context}
         Response: 
@@ -84,7 +90,8 @@ class Session():
         prompt_context = [{"role": Role.system.name, "content": prompt}]
 
         response = agent.response_to_context(prompt_context)
-        if response == "Yes":
+        self.view.process_event()
+        if "Yes" in response:
             return True
 
         prompt_context.append({"role": Role.assistant.name, "content": response})
@@ -93,6 +100,7 @@ class Session():
         Response:"""
         prompt_context.append({"role": Role.system.name, "content": prompt})
         response = agent.response_to_context(prompt_context)
+        self.view.process_event()
         # responseを解決不能な理由として表示する
         text = f"Response: {response}"
         self.message_carrier.print_message_as_system(text, True)
@@ -108,6 +116,7 @@ class Session():
         
         try:
             objective = await self.view.request_user_input()
+            self.view.process_event()
             if not objective:
                 raise ValueError("目的が入力されていません。")
         except asyncio.CancelledError:
@@ -128,6 +137,7 @@ class Session():
 
         try:
             context = await self.view.request_user_input()
+            self.view.process_event()
         except asyncio.CancelledError:
             raise
         text = "Context: " + context
@@ -145,6 +155,7 @@ class Session():
         The list should be formatted with the "-" sign and should not include responses other than the list.
         Response:"""
         response = agent.response_to_prompt(prompt)
+        self.view.process_event()
         tasks_text = response.split("\n") if "\n" in response else [response]
         # "-"から始まる行のみを抽出する
         tasks_text = [task for task in tasks_text if task.startswith("-")]
@@ -202,6 +213,7 @@ class Session():
         The list should be formatted with the "-" sign and should not include responses other than the list.
         Response:"""
         response = agent.response_to_prompt(prompt)
+        self.view.process_event()
         tasks_text = response.split("\n") if "\n" in response else [response]
         # "-"から始まる行のみを抽出する
         tasks_text = [task for task in tasks_text if task.startswith("-")]
@@ -228,6 +240,7 @@ class Session():
         If it is difficult to determine, just answer "4" for now.
         Number:"""
         response = agent.response_to_prompt(prompt)
+        self.view.process_event()
         try:
             digit = response[0]
             number = int(digit)
