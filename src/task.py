@@ -2,7 +2,7 @@ from enum import Enum
 
 class TaskTag(Enum):
     """
-    タスクタグを表す列挙型
+    Enumerated types representing task types
     """
     unsolvable = 0
     ask_user = 1
@@ -12,7 +12,7 @@ class TaskTag(Enum):
 
 class Task:
     """
-    AutoEvolverにおける、Botが解決するタスクを表すクラス
+    Class representing the task to be solved by the bot in AutoEvolver
     """
     def __init__(self, content: str, tag: TaskTag) -> None:
         self.content = content
@@ -21,15 +21,9 @@ class Task:
         self.result: str = ""
 
     def complete(self, result: str) -> None:
-        """
-        タスクを完了する
-        """
         self.completed = True
         self.result = result
 
     @property
     def subdividable(self) -> bool:
-        """
-        タスクが細分化可能かを返す
-        """
         return self.tag == TaskTag.subdivide

@@ -210,10 +210,11 @@ class Session():
         The task is: {task_text}
         Select only one most appropriate number and return that number only. Any other response will not be included.
         If it is difficult to determine, just answer "4" for now.
-        Response:"""
+        Number:"""
         response = agent.response_to_prompt(prompt)
         try:
-            number = int(response)
+            digit = response[0]
+            number = int(digit)
         except ValueError:
             raise ValueError(f"response is not a number: {response} for {task_text}")
         # responseからタグを抽出する
