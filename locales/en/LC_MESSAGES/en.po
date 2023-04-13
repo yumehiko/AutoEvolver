@@ -1,0 +1,59 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.2.2\n"
+
+#: session.py:49
+msgid "Enter something and it will exit."
+msgstr "Enter something and it will exit."
+
+#: session.py:63
+msgid ""
+"Error: Unobtainable. \n"
+"Please start over from the objective setting."
+msgstr ""
+"Error: Unobtainable. \n"
+"Please start over from the objective setting."
+
+#: session.py:66
+msgid ""
+"The objective has been determined to be achievable. \n"
+"Generate task ......"
+msgstr ""
+"The objective has been determined to be achievable. \n"
+"Generate task ......"
+
+#: session.py:76
+msgid "Determine the feasibility of your objectives ......"
+msgstr "Determine the feasibility of your objectives ……"
+
+#: session.py:116
+msgid ""
+"Please enter a objective. \n"
+"Example: Please make a Tetris."
+msgstr ""
+"Please enter a objective. \n"
+"Example: Please make a Tetris."
+
+#: session.py:123
+msgid "The objective has not been entered."
+msgstr "The objective has not been entered."
+
+#: session.py:137
+msgid ""
+"Enter the context regarding the objective. \n"
+"Example: a simple Tetris that can be executed in Python. No sound is "
+"required."
+msgstr ""
+"Enter the context regarding the objective. \n"
+"Example: a simple Tetris that can be executed in Python. No sound is "
+"required."

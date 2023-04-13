@@ -1,0 +1,36 @@
+#: session.py:49
+msgid "Enter something and it will exit."
+msgstr ""
+
+#: session.py:63
+msgid ""
+"Error: Unobtainable. \n"
+"Please start over from the objective setting."
+msgstr ""
+
+#: session.py:66
+msgid ""
+"The objective has been determined to be achievable. \n"
+"Generate task ......"
+msgstr ""
+
+#: session.py:76
+msgid "Determine the feasibility of your objectives ......"
+msgstr ""
+
+#: session.py:116
+msgid ""
+"Please enter a objective. \n"
+"Example: Please make a Tetris."
+msgstr ""
+
+#: session.py:123
+msgid "The objective has not been entered."
+msgstr ""
+
+#: session.py:137
+msgid ""
+"Enter the context regarding the objective. \n"
+"Example: a simple Tetris that can be executed in Python. No sound is "
+"required."
+msgstr ""

@@ -1,0 +1,59 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 3.2.2\n"
+
+#: session.py:49
+msgid "Enter something and it will exit."
+msgstr "何かを入力すると、終了します。"
+
+#: session.py:63
+msgid ""
+"Error: Unobtainable. \n"
+"Please start over from the objective setting."
+msgstr ""
+"Error:  達成不可能です。\n"
+"目的設定からやり直してください。"
+
+#: session.py:66
+msgid ""
+"The objective has been determined to be achievable. \n"
+"Generate task ......"
+msgstr ""
+"目的は達成可能です。\n"
+"タスクリストを生成します……"
+
+#: session.py:76
+msgid "Determine the feasibility of your objectives ......"
+msgstr "目的の実現可能性を判定します……"
+
+#: session.py:116
+msgid ""
+"Please enter a objective. \n"
+"Example: Please make a Tetris."
+msgstr ""
+"目的を入力してください。\n"
+"例 ：テトリスを作ってください。"
+
+#: session.py:123
+msgid "The objective has not been entered."
+msgstr "目的が未入力です。"
+
+#: session.py:137
+msgid ""
+"Enter the context regarding the objective. \n"
+"Example: a simple Tetris that can be executed in Python. No sound is "
+"required."
+msgstr ""
+"目的に関する文脈・説明を入力します。\n"
+"例：Pythonで実行可能な、必要最低限な機能を備えたシンプルなテトリス。"
+"音は必要ありません。"

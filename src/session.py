@@ -1,77 +1,79 @@
 from .ui_base import UIBase
 from .role import Role
-from .chat_message import ChatMessage
-from .talker import Talker
 from .bot_agent import BotAgent
 from .file_reader import FileReader
 from .message_carrier import MessageCarrier
 from .task import Task, TaskTag
 from dotenv import load_dotenv
+from .i18n import _
 import asyncio
 import openai
 import os
 
 class Session():
     """
-    自律型タスク解決セッション。
+    Autonomous task resolution sessions.
     """
 
     def __init__(self, view: UIBase) -> None:
         self.view = view
         self.message_carrier = MessageCarrier(view)
         self.file_reader = FileReader()
-        # APIキーを.envから読み込む。
+        # Read the API key from .env.
         openai.api_key = os.getenv("OPENAI_API_KEY", "")
-        # OpenAIのAPIキーが設定できたか確認し、設定されていない場合は例外を返す
+        # Checks if the OpenAI API key has been set and returns an exception if not.
         if not openai.api_key:
             raise ValueError("APIKey is not set.")
         
     async def run(self) -> None:
-        # 1. objectiveとそのcontextを受ける
-        # 2. objectiveをtasksに分割する
-        # 3. tasksを解決可能なresolvablesとunresolvablesに分割する
-        # 4. unresolvablesをもとに、追加すべき機能をまとめ、need_function_tasksとする
-        # 5. need_function_tasksをresolvablesとunresolvablesに分割し、それぞれに分配する。
-        # 6. 4-5を繰り返し、unresolvablesが空になるまで繰り返す
-        # 7. resolvablesを解決する
-        self.message_carrier.print_message_as_system("\n=== Start Session ===", True)
+        """
+        Start Session.        
+        """
+        # 1. take an objective and its context
+        # 2. split objective into tasks
+        # 3. split tasks into resolvable resolvables and unresolvables
+        # 4. based on unresolvables, summarize functions to be added and make need_function_tasks
+        # 5. divide need_function_tasks into resolvables and unresolvables and distribute to each # 6.
+        # 6. repeat 4-5 until unresolvables is empty
+        # 7. resolve resolvables
+        self.message_carrier.print_message_as_system("=== Start Session ===", True)
         agent = BotAgent()  
         objective, context = await self.determine_objective(agent)
         tasks = self.split_to_tasks(agent, objective, context)
         await self.end()
 
     async def end(self) -> None:
-        self.message_carrier.print_message_as_system("\n=== End Session ===", True)
+        self.message_carrier.print_message_as_system("=== End Session ===", True)
         self.message_carrier.save_log_as_json()
-        # 何か入力すると終了するメッセージを表示する。
-        self.message_carrier.print_message_as_system("何か入力すると終了します。", False)
+        # Display a message to exit when you type something.
+        self.message_carrier.print_message_as_system(_("Enter something and it will exit."), False)
         await self.view.request_user_input()
 
         
     
     async def determine_objective(self, agent: BotAgent) -> tuple[str, str]:
         """
-        実現可能な目的が設定されるまで、目的を尋ねる。
+        Ask the user for objectives until a feasible objective and its context are established.
         """
         while True:
             objective = await self.ask_objective()
             context = await self.ask_context()
             feasibility = await self.feasibility_assessment(agent, objective, context)
             if not feasibility:
-                text = f"Error: 達成不能と判断されました。\n目的設定からやり直してください。"
+                text = _("Error: Unobtainable. \nPlease start over from the objective setting.")
                 self.message_carrier.print_message_as_system(text, True)
             else:
-                text = f"達成可能と判定されました。タスクを生成します……"
+                text = _("The objective has been determined to be achievable. \nGenerate task ......")
                 self.message_carrier.print_message_as_system(text, True)
                 return objective, context
 
 
     async def feasibility_assessment(self, agent: BotAgent, objective: str, context: str) -> bool:
         """
-        目的の実現可能性を判定する。
+        Determine feasibility of objectives.
         """
 
-        text = "目的の実現可能性を判定します……"
+        text = _("Determine the feasibility of your objectives ......")
         self.message_carrier.print_message_as_system(text, True)
 
         abilities = self.file_reader.read_file("abilities.txt", "documents")
@@ -109,16 +111,16 @@ class Session():
 
     async def ask_objective(self) -> str:
         """
-        ユーザーから、目的の設定の入力を受ける。
+        Receive input from the user on the desired settings.
         """
-        text = ("目的を入力してください。\n例：テトリスを作ってください。")
+        text = (_("Please enter a objective. \nExample: Please make a Tetris."))
         self.message_carrier.print_message_as_system(text, True)
         
         try:
             objective = await self.view.request_user_input()
             self.view.process_event()
             if not objective:
-                raise ValueError("目的が入力されていません。")
+                raise ValueError(_("The objective has not been entered."))
         except asyncio.CancelledError:
             raise
         
@@ -130,9 +132,9 @@ class Session():
 
     async def ask_context(self) -> str:
         """
-        ユーザーから、目的設定に関する文脈の入力を受ける。
+        Receive contextual input from the user regarding the objective setting.
         """
-        text = ("目的に関する文脈を入力してください。\n例：Pythonで実行できる、シンプルなテトリス。音は必要ありません。")
+        text = (_("Enter the context regarding the objective. \nExample: a simple Tetris that can be executed in Python. No sound is required."))
         self.message_carrier.print_message_as_system(text, True)
 
         try:
@@ -152,32 +154,32 @@ class Session():
         The context regarding the objective is as follows: {context}
         You are part of a repository called AutoEvolver and this objective must be resolved by AutoEvolver alone.
         Subdivide and list the objectives into tasks in order to resolve them. Do not try to solve them at this point.
+        When subdividing, do not add more than the original objective. Subdivide into tasks that require the least amount of effort to accomplish.
+        If the task can be solved in the Python code implementation, subdivide it into modules.
         The list should be formatted with the "-" sign and should not include responses other than the list.
         Response:"""
         response = agent.response_to_prompt(prompt)
         self.view.process_event()
         tasks_text = response.split("\n") if "\n" in response else [response]
-        # "-"から始まる行のみを抽出する
+
+        # Extract only lines starting with "-".
         tasks_text = [task for task in tasks_text if task.startswith("-")]
 
-        # すべてのtasks_textをtaskに変換する
+        # Convert all tasks_text to tasks
         tasks = [self.tasktext_to_task(agent, objective, context, task_text) for task_text in tasks_text]
 
-        # 細分化前のTaskのリストを表示する。
-        # リストは、TaskのContent - TaskTag.valueの順に表示される。
-        # メッセージは一括で表示される
+        # Display a list of Tasks before subdividing.
+        # The list is displayed in order of Task's Content - TaskTag.value.
+        # Messages are displayed in batches.
         self.message_carrier.print_message_as_system("=== Init Task List ===", True)
         print_text = ""
         for task in tasks:
-            print_text += f"{task.content} - {task.tag.value}\n"
+            print_text += f"{task.content} - {task.tag.name}\n"
         self.message_carrier.print_message_as_system(print_text, True)
 
-        # すべてのTaskを細分化するインフォメーションを出す
-        self.message_carrier.print_message_as_system("=== Start Subdividing Tasks ===", True)
-
-        # tasksの中から、subdividableなものを検索し、見つけるたびに細分化したリストとその要素を入れ替える
-        # これを繰り返す
-        # すべてのtasksがsubdividableでなくなったら、終了する
+        # Search for subdividable items in tasks and replace the subdivided list and its elements each time you find them.
+        # Repeat this process
+        # When all tasks are no longer subdividable, exit.
         new_tasks = tasks[:]
         while True:
             subdividable_tasks = [task for task in new_tasks if task.subdividable]
@@ -189,43 +191,42 @@ class Session():
                 new_tasks[task_index:task_index+1] = subtasks
         tasks = new_tasks
 
-        # 細分化終了メッセージを出す
-        self.message_carrier.print_message_as_system("=== Finish Subdividing Tasks ===", True)
-
-        # 最終的なTasksのリストを表示する
-        self.message_carrier.print_message_as_system("\n=== Confirmed Tasks ===", True)
+        # Display the final list of Tasks.
+        self.message_carrier.print_message_as_system("=== Confirmed Tasks ===", True)
         print_text = ""
         for task in tasks:
-            print_text += f"{task.content} - {task.tag.value}\n"
+            print_text += f"{task.content} - {task.tag.name}\n"
         self.message_carrier.print_message_as_system(print_text, True)
 
         return tasks
     
     def split_to_subtasks(self, agent: BotAgent, objective: str, context: str, task: Task) -> list[Task]:
         """
-        Taskをさらに小さなTaskに分割し、そのリストを返す。
+        Split the Task into smaller Tasks and return a list of those Tasks.
         """
         prompt = f"""
         You are an AI that further subdivides the subdivided tasks to achieve the final objective {objective}.
         The context of the objective is {context}.
         You are part of a repository called AutoEvolver.
         The task to subdivide is {task.content}.
+        When subdividing, do not add more than the original objective. Subdivide into tasks that require the least amount of effort to accomplish.
+        If the task can be solved in the Python code implementation, subdivide it into modules.
         The list should be formatted with the "-" sign and should not include responses other than the list.
         Response:"""
         response = agent.response_to_prompt(prompt)
         self.view.process_event()
         tasks_text = response.split("\n") if "\n" in response else [response]
-        # "-"から始まる行のみを抽出する
+        # Extract only lines beginning with "-".
         tasks_text = [task for task in tasks_text if task.startswith("-")]
 
-        # すべてのtasks_textをtaskに変換する
+        # Convert all tasks_text to tasks
         tasks = [self.tasktext_to_task(agent, objective, context, task_text) for task_text in tasks_text]
 
-        # 細分化したTaskのリストを表示する。
+        # Display a list of subdivided Tasks.
         self.message_carrier.print_message_as_system("=== Subdivided Tasks ===", True)
         print_text = ""
         for task in tasks:
-            print_text += f"{task.content} - {task.tag.value}\n"
+            print_text += f"{task.content} - {task.tag.name}\n"
         self.message_carrier.print_message_as_system(print_text, True)
 
         return tasks
@@ -260,8 +261,8 @@ class Session():
     
 
     def resolve_tasks(self, agent: BotAgent, objective: str, context: str, tasks: list[Task]) -> None:
-        """
-        tasksを解決する。
-        """
-        # すべてのtaskを解決する
+        pass
+
+
+    def resolve_with_python(self, agent: BotAgent, objective: str, context: str, task: Task) -> None:
         pass
