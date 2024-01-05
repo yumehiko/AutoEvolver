@@ -37,9 +37,8 @@ class Session():
         # 6. repeat 4-5 until unresolvables is empty
         # 7. resolve resolvables
         self.message_carrier.print_message_as_system("=== Start Session ===", True)
-        agent = BotAgent()  
-        objective, context = await self.determine_objective(agent)
-        tasks = self.split_to_tasks(agent, objective, context)
+        objective, context = await self.determine_objective()
+        tasks = self.split_to_tasks(objective, context)
         await self.end()
 
     async def end(self) -> None:
@@ -49,16 +48,15 @@ class Session():
         self.message_carrier.print_message_as_system(_("Enter something and it will exit."), False)
         await self.view.request_user_input()
 
-        
     
-    async def determine_objective(self, agent: BotAgent) -> tuple[str, str]:
+    async def determine_objective(self) -> tuple[str, str]:
         """
         Ask the user for objectives until a feasible objective and its context are established.
         """
         while True:
             objective = await self.ask_objective()
             context = await self.ask_context()
-            feasibility = await self.feasibility_assessment(agent, objective, context)
+            feasibility = await self.feasibility_assessment(objective, context)
             if not feasibility:
                 text = _("Error: Unobtainable. \nPlease start over from the objective setting.")
                 self.message_carrier.print_message_as_system(text, True)
@@ -68,10 +66,23 @@ class Session():
                 return objective, context
 
 
-    async def feasibility_assessment(self, agent: BotAgent, objective: str, context: str) -> bool:
+    async def decide_on_specifications(self) -> str:
+        """
+        仕様についてユーザーと議論し、策定する。
+        """
+        pass
+
+    def check_specifications_are_finalized(self) -> bool:
+        """
+        仕様が策定されているか確認する。
+        """
+        pass
+
+    async def feasibility_assessment(self, objective: str, context: str) -> bool:
         """
         Determine feasibility of objectives.
         """
+        agent = BotAgent()
 
         text = _("Determine the feasibility of your objectives ......")
         self.message_carrier.print_message_as_system(text, True)
@@ -89,23 +100,20 @@ class Session():
         Response: 
         """
 
-        prompt_context = [{"role": Role.system.name, "content": prompt}]
-
-        response = agent.response_to_context(prompt_context)
+        agent.add_context(prompt)
+        response = agent.response_to_context()
         self.view.process_event()
         if "Yes" in response:
             return True
 
-        prompt_context.append({"role": Role.assistant.name, "content": response})
         prompt = f"""
         Please tell me why you have determined that this task is not feasible.
         Response:"""
-        prompt_context.append({"role": Role.system.name, "content": prompt})
-        response = agent.response_to_context(prompt_context)
+        agent.add_context(prompt)
+        response = agent.response_to_context()
         self.view.process_event()
         # responseを解決不能な理由として表示する
-        text = f"Response: {response}"
-        self.message_carrier.print_message_as_system(text, True)
+        self.message_carrier.print_message_as_system(response, True)
         return False
 
 
@@ -148,7 +156,8 @@ class Session():
         return context
                 
 
-    def split_to_tasks(self, agent: BotAgent, objective: str, context: str) -> list[Task]:
+    def split_to_tasks(self, objective: str, context: str) -> list[Task]:
+        agent = BotAgent()
         prompt = f"""
         You are an AI listing tasks to be performed based on the following objective: {objective}.
         The context regarding the objective is as follows: {context}
@@ -156,9 +165,10 @@ class Session():
         Subdivide and list the objectives into tasks in order to resolve them. Do not try to solve them at this point.
         When subdividing, do not add more than the original objective. Subdivide into tasks that require the least amount of effort to accomplish.
         If the task can be solved in the Python code implementation, subdivide it into modules.
+        Do not create abstract tasks. Whenever possible, format the task to be solved by generating Python modules.
         The list should be formatted with the "-" sign and should not include responses other than the list.
         Response:"""
-        response = agent.response_to_prompt(prompt)
+        response = agent.response(prompt)
         self.view.process_event()
         tasks_text = response.split("\n") if "\n" in response else [response]
 
@@ -166,7 +176,7 @@ class Session():
         tasks_text = [task for task in tasks_text if task.startswith("-")]
 
         # Convert all tasks_text to tasks
-        tasks = [self.tasktext_to_task(agent, objective, context, task_text) for task_text in tasks_text]
+        tasks = [self.tasktext_to_task(objective, context, task_text) for task_text in tasks_text]
 
         # Display a list of Tasks before subdividing.
         # The list is displayed in order of Task's Content - TaskTag.value.
@@ -177,33 +187,29 @@ class Session():
             print_text += f"{task.content} - {task.tag.name}\n"
         self.message_carrier.print_message_as_system(print_text, True)
 
-        # Search for subdividable items in tasks and replace the subdivided list and its elements each time you find them.
-        # Repeat this process
-        # When all tasks are no longer subdividable, exit.
-        new_tasks = tasks[:]
-        while True:
-            subdividable_tasks = [task for task in new_tasks if task.subdividable]
-            if not subdividable_tasks:
-                break
-            for task in subdividable_tasks:
-                subtasks = self.split_to_subtasks(agent, objective, context, task)
-                task_index = new_tasks.index(task)
-                new_tasks[task_index:task_index+1] = subtasks
-        tasks = new_tasks
+        # Check if each task should be subdivided, and set subtask if it should be subdivided.
+        for task in tasks:
+            if task.tag == TaskTag.subdivide:
+                subtasks = self.split_to_subtasks(objective, context, task)
+                task.subtasks = subtasks
 
         # Display the final list of Tasks.
         self.message_carrier.print_message_as_system("=== Confirmed Tasks ===", True)
         print_text = ""
         for task in tasks:
             print_text += f"{task.content} - {task.tag.name}\n"
+            if task.subtasks:
+                for subtask in task.subtasks:
+                    print_text += f"    {subtask.content} - {subtask.tag.name}\n"
         self.message_carrier.print_message_as_system(print_text, True)
 
         return tasks
     
-    def split_to_subtasks(self, agent: BotAgent, objective: str, context: str, task: Task) -> list[Task]:
+    def split_to_subtasks(self, objective: str, context: str, task: Task) -> list[Task]:
         """
         Split the Task into smaller Tasks and return a list of those Tasks.
         """
+        agent = BotAgent()
         prompt = f"""
         You are an AI that further subdivides the subdivided tasks to achieve the final objective {objective}.
         The context of the objective is {context}.
@@ -213,14 +219,14 @@ class Session():
         If the task can be solved in the Python code implementation, subdivide it into modules.
         The list should be formatted with the "-" sign and should not include responses other than the list.
         Response:"""
-        response = agent.response_to_prompt(prompt)
+        response = agent.response(prompt)
         self.view.process_event()
         tasks_text = response.split("\n") if "\n" in response else [response]
         # Extract only lines beginning with "-".
         tasks_text = [task for task in tasks_text if task.startswith("-")]
 
         # Convert all tasks_text to tasks
-        tasks = [self.tasktext_to_task(agent, objective, context, task_text) for task_text in tasks_text]
+        tasks = [self.tasktext_to_task(objective, context, task_text) for task_text in tasks_text]
 
         # Display a list of subdivided Tasks.
         self.message_carrier.print_message_as_system("=== Subdivided Tasks ===", True)
@@ -232,15 +238,17 @@ class Session():
         return tasks
 
 
-    def tasktext_to_task(self, agent: BotAgent, objective: str, context: str, task_text: str) -> Task:
+    def tasktext_to_task(self, objective: str, context: str, task_text: str) -> Task:
+        agent = BotAgent()
         prompt = f"""
-        You are an AI that categorizes the solution to a given task as "ask user (1)", "output text by ChatGPT itself (2)", "run or write new Python module to solve (3)" "Further divide into smaller tasks (4)" or "unsolvable (0)".
+        You are an AI that categorizes the solution to a given task as "ask user (1)", "Further divide into smaller tasks (2)" "output text by ChatGPT itself (3)", "run or write new Python module to solve (4)" or "unsolvable (0)".
         The task is part of the final objective {objective}. The context of that objective is {context}.
         The task is: {task_text}
         Select only one most appropriate number and return that number only. Any other response will not be included.
-        If it is difficult to determine, just answer "4" for now.
+        If it is difficult to determine, just answer "2" for now.
+		Choose the solution with the highest number possible.
         Number:"""
-        response = agent.response_to_prompt(prompt)
+        response = agent.response(prompt)
         self.view.process_event()
         try:
             digit = response[0]

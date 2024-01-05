@@ -1,3 +1,4 @@
+from __future__ import annotations
 from enum import Enum
 
 class TaskTag(Enum):
@@ -19,10 +20,14 @@ class Task:
         self.tag = tag
         self.completed = False
         self.result: str = ""
+        self.subtasks: list[Task] = []
 
     def complete(self, result: str) -> None:
         self.completed = True
         self.result = result
+
+    def set_subtasks(self, subtasks: list[Task]) -> None:
+        self.subtasks = subtasks
 
     @property
     def subdividable(self) -> bool:
